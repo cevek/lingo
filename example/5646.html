@@ -1,0 +1,325 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+</head>
+<body>
+<style type="text/css">
+	body{text-align: center; font-family: "Trebuchet MS"; font-size: 16px; margin: 0}
+	#audio{position: fixed; z-index: 10}
+
+	.block{padding: 30px 0px 0 0; margin: 0 0; p1osition: relative; o1verflow: hidden;}
+	.cast{font-weight: bold; display: none;}
+	.rus{font-size: 13px; color: #888}
+	.line{background: #FAFAFA; border-top: 1px solid white; border-bottom: 1px solid #DDD; padding: 4px 0; position: relative;}
+	.line:nth-child(2n){background-color: #F3F3F3}
+
+	.sound{ box-shadow: inset 0px 0px 7px rgba(0,0,0,.7);  position: absolute; left: 10px; top: 50%; margin-top: -15px; background: #383646 url(2.png) 0 0 no-repeat; height: 30px; border-radius: 4px; overflow: hidden; }
+	.sound_rus{left: auto; right: 110px;}
+	.sound .handle{width: 20px; position: absolute; right: -10px; height: 30px; cursor: ew-resize}
+	.sound_rus div{right: auto; left: -10px;}
+	.sound_pos{visibility: hidden; position: absolute; left: 0; top: 0; height: 30px; width: 6px; background: url(soundcursor.png) no-repeat center center; margin-left: -3px;}
+	.sound_pos.animate{visibility: visible; -webkit-transform: translate(500px,0); -webkit-transition: linear all 10s; -moz-transform: translate(500px,0); -moz-transition: linear all 10s; }
+
+	/*.thumbs{d1isplay: none; position: absolute; width: 75px; text-align: right; top:0; bottom: 0; overflow: hidden; padding: 30px 0 0 0; right: 0; background: white; border-bottom: 3px solid black;}*/
+	.thumb{position: absolute; margin: 0px 0 0 0; right: 0px; top: 0; background: url(thumbs_.jpg) no-repeat; width: 100px; height: 50px;}
+</style>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script type="text/javascript">
+
+	var timeout;
+	$(document).delegate(".sound", "mousedown", function(e){
+		//if (!e.ctrlKey)
+		//	return false;
+		var $this = $(e.target);
+
+		var isMoved = false;
+		var isResize = $this.hasClass("handle");
+		if (isResize)
+			$this = $this.parent();
+		var isRus = $this.hasClass("sound_rus");
+
+		var i = $(".sound").index($this);
+		var atom = atoms[i];
+
+
+		var x = e.clientX;
+		var left = parseInt($this.css("background-position"));
+		var width = parseInt($this.css("width"));
+		$(document).bind("mousemove.sound", function(e){
+			isMoved = true;
+			var offs = x - e.clientX;
+			var obj = {pos: left - offs, width: Math.min(width-offs, 500)};
+
+			if (isResize)
+				delete obj.pos;
+
+			if (isRus){
+				if (!e.shiftKey)
+					delete obj.pos// = left + offs + "px 0";
+				obj.width = Math.min(width+offs, 500);
+				if (isResize)
+					obj.pos = left + offs;
+			}
+
+			if (e.shiftKey)
+				delete obj.width;
+
+			if (obj.pos){
+				atom.start = -obj.pos / 50;
+				obj.backgroundPosition = obj.pos + "px 0";
+			}
+
+			if (obj.width){
+				atom.width = obj.width / 50;
+				obj.width = obj.width + "px";
+			}
+
+			$this.css(obj);
+			return false;
+		})
+
+		$(document).one("mouseup", function(e){
+			$(document).unbind("mousemove.sound");
+			$pos = $this.find(".sound_pos");
+
+			audio.currentTime = isResize ? atom.start + atom.width - 1 : atom.start;
+			if (audio.paused || audio.volume<0.1 || isMoved){
+				$(".sound_pos.animate").removeClass("animate").css("left",0);
+				$pos.css({left: (audio.currentTime - atom.start)*50+"px"});
+				//$pos.addClass("animate")//.show();
+				setTimeout("$pos.addClass('animate')");
+				audio.volume = 1;
+				//audio.play()
+			}
+			else{
+				$(".sound_pos.animate").removeClass("animate").css("left",0);
+				audio.volume = 0.03;
+				//audio.pause();
+			}
+			clearTimeout(timeout);
+			timeout = setTimeout(function(){
+				$(".sound_pos.animate").removeClass("animate").css("left",0);
+				audio.volume = 0.03;
+				//audio.pause();
+			}, (isResize ? 1 : atom.width) * 1000);
+
+		})
+		return false;
+	});
+
+	var audio;
+	var atoms = [];
+
+	$(function(){
+		audio = $("#audio")[0];
+
+		$(".sound_eng, .sound_rus").each(function(i){
+			atoms[i] = {start: Math.random()*100, width: Math.random()*5}
+			var width = atoms[i].width*50|0;
+			var pos = (-atoms[i].start*50|0) + "px 0";
+			$(this).css({backgroundPosition: pos, width: width});
+		});
+
+		$(".thumb").each(function(i){
+			$(this).css({backgroundPosition: "0 "+(-i*50)+"px"});
+		});
+
+
+
+	})
+</script>
+<audio src="3.wav" controls id="audio"></audio>
+<div class="block">
+	<div class="cast">Tom</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">I'm not a Christian.</div>
+		<div class="rus">Я не верю в Новый Завет.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">I'm not an atheist.</div>
+		<div class="rus">Не верю в Ветхий.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">I'm not Jewish.</div>
+		<div class="rus">Не верю в Тору.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng"> I'm not Muslim.</div>
+		<div class="rus">Не верю в Коран.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">My religion and what I believe inis</div>
+		<div class="rus">Моя Библия, в которую я верю</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">called the Constitution
+			of the United States of America.</div>
+		<div class="rus">называется Конституция
+				Соединенных Штатов Америки</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+</div>
+
+
+<div class="block">
+	<div class="cast">Operator</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">Hang on.</div>
+		<div class="rus">Подожди.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+
+	</div>
+</div>
+
+<div class="block">
+	<div class="cast">Tom</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">And let me open these up.</div>
+		<div class="rus">Сейчас всё сделаю.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">I'm not Jewish.</div>
+		<div class="rus">Не верю в Тору.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng"> I'm not Muslim.</div>
+		<div class="rus">Не верю в Коран.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">My religion and what I believe inis</div>
+		<div class="rus">Моя Библия, в которую я верю</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">called the Constitution
+			of the United States of America.</div>
+		<div class="rus">называется Конституция
+			Соединенных Штатов Америки</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+</div>
+
+<div class="block">
+	<div class="cast">Operator</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">Hang on.</div>
+		<div class="rus">Подожди.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">Okay, go ahead</div>
+		<div class="rus">Продолжай.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+</div>
+
+<div class="block">
+	<div class="cast">Tom</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">If I'm not religious enough for you,</div>
+		<div class="rus">Если вам кажется, что во мне мало
+			благочестия,</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">don't vote for me.</div>
+		<div class="rus">не голосуйте за меня.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">If I’m not experienced enough for you...</div>
+		<div class="rus">Если мне не хватает опыта,</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">Don't vote for me.</div>
+		<div class="rus">не голосуйте за меня.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">You know what?</div>
+		<div class="rus">И вообще </div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">don't vote for me.</div>
+		<div class="rus">не берите
+			меня в расчет.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">Don't. Don't do it.</div>
+		<div class="rus">Не нужно.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">Whatever you do, don't vote for me.</div>
+		<div class="rus">Приберегите свой голос.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+	<div class="line">
+		<div class="sound sound_eng"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="eng">How's that?</div>
+		<div class="rus">не голосуйте за меня.</div>
+		<div class="sound sound_rus"><div class="handle"></div><div class="sound_pos"></div></div>
+		<div class="thumb"></div>
+	</div>
+</div>
+</body>
+</html>

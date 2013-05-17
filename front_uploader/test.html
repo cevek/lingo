@@ -1,0 +1,538 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+	<script src="http://code.jquery.com/jquery-1.8.3.min.js" type="text/javascript"></script>
+	<script type="text/javascript" src="jquery.time.js"></script>
+	<script type="text/javascript" src="jquery.inputfile.js"></script>
+	<style type="text/css">
+
+
+body, select, input, button, textarea{font-family: Verdana; font-size: 12px;}
+
+.uploader{width: 500px; margin: 50px auto 0 auto; }
+
+.item{margin: 0 0 0 0; padding: 12px 0; line-height: 20px; border-radius: 8px;}
+.item:nth-child(even){background: #EEE;}
+
+.time_input{text-align: center; width: 22px; font-size: 17px; border: none; background: transparent;}
+label{display: inline-block; width: 150px; font-size: 16px; text-align: right; vertical-align: top}
+.field{display: inline-block;}
+.field select{width: 180px; margin-bottom: 5px}
+.field select optgroup{font-family: Verdana; padding: 0 3px}
+.field textarea{width: 300px; height: 80px;}
+.field .hint{color: gray; font-size: 11px; font-style: italic}
+h1{text-align: center;}
+
+.info{ }
+.info .slice{display: none}
+.info input{width: 65px; text-align: center; margin-top: 4px}
+.info .dur_from_video{width: auto}
+.info label{width: auto; margin-right: 3px;}
+
+.inputfile_button{display: none;}
+.field input{}
+.slice{overflow: hidden;}
+
+.file_button{}
+.loader{display: none; background: url(ajax-loader.gif) no-repeat center center; padding: 8px; margin: 0 0 0 5px;}
+
+
+.textarea_wrap{display: none}
+
+#progress{position: absolute; top: 10px; left: 50%; margin-left: -200px; width: 400px; height: 20px;}
+	</style>
+</head>
+<body>
+
+
+
+<progress id="progress" value="0" max="100">0%</progress>
+<div class="uploader">
+
+<h1>Загрузить новый контент</h1>
+
+
+<div class="item" type="video">
+	<label>Видео:</label>	
+	<div class="field">
+		<div><select id="videoSelect">
+			<option selected value=1>выбрать файл</option>
+			<option value=0>нет</option></select>
+			<input type="button" value="обзор" class="file_button"> <span class="loader"></span>
+		</div>
+		<div id="videoInfo" class="info">
+			<div class="file_line"><input id="videoFile" type="file" title="обзор" accept=".mkv, .avi, .mp4" hint="mkv, avi, mp4, до 5гб"></div>
+			<div class="slice">
+				<div><span>Длительность: </span><span class="duration"></span></div>
+				<div><span>Вырезать часть: </span><span class="select_duration"></span></div>
+				<div>c <input class="start" type="text"> по <input class="end" type="text"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="item" type="ruAudio">
+	<label>Аудио Ru:</label>	
+	<div class="field">
+		<div><select id="ruAudioSelect">
+			<option selected value=1>выбрать файл</option>
+			<option value=0>нет</option>
+			<optgroup disabled class="audio_list" label="аудиодорожки видео"><option>видео не выбрано</option></optgroup></select>
+			<input type="button" value="обзор" class="file_button"> <span class="loader"></span>
+		</div>
+		<div id="ruAudioInfo" class="info">
+			<div class="file_line"><input id="ruAudioFile" type="file" title="обзор" accept=".mp3, .ac3, .aac" hint="mp3, ac3, aac"></div>
+			<div class="slice">
+				<div><span>Длительность: </span><span class="duration"></span></div>
+				<div><span>Вырезать часть: </span><span class="select_duration"></span></div>
+				<div>c <input class="start" type="text"> по <input class="end" type="text"> <input class="dur_from_video" title="Взять данные у видеофайла" type="checkbox"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="item" type="enAudio">
+	<label>Аудио En:</label>	
+	<div class="field">
+		<div><select id="enAudioSelect">
+			<option selected value=1>выбрать файл</option>
+			<option value=0>нет</option>
+			<optgroup disabled class="audio_list" label="аудиодорожки видео"><option>видео не выбрано</option></optgroup></select>
+			<input type="button" value="обзор" class="file_button"> <span class="loader"></span>
+		</div>
+
+		<div id="enAudioInfo" class="info">
+			<div class="file_line"><input id="enAudioFile" type="file" title="обзор" accept=".mp3, .ac3, .aac" hint="mp3, ac3, aac"></div>
+			<div class="slice">
+				<div><span>Длительность: </span><span class="duration"></span></div>
+				<div><span>Вырезать часть: </span><span class="select_duration"></span></div>
+				<div>c <input class="start" type="text"> по <input class="end" type="text"> <input class="dur_from_video" title="Взять данные у видеофайла" type="checkbox"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="item" type="ruSub">
+	<label title="Текст или субтитры">Текст Ru:</label>	
+	<div class="field">
+		<div><select id="ruSubSelect">
+			<option selected value=1>выбрать файл</option>
+			<option value=2>заполнить поле</option>
+			<optgroup disabled class="sub_list" label="субтитры из видео"><option>видео не выбрано</option></optgroup></select>
+			<input type="button" value="обзор" class="file_button"> <span class="loader"></span>
+		</div>
+
+		<div id="ruSubInfo" class="info">
+			<div class="file_line"><input id="ruSubFile" type="file" title="обзор" accept=".srt, .txt" hint="srt, txt"></div>
+			<div class="slice">
+				<div><span>Вырезать часть: </span><span class="select_duration"></span></div>
+				<div>c <input class="start" type="text"> по <input class="end" type="text"> <input class="dur_from_video" title="Взять данные у видеофайла" type="checkbox"></div>
+			</div>
+		</div>
+		<div class="textarea_wrap"><textarea id="ruSub"></textarea></div>
+	</div>
+</div>
+
+
+<div class="item" type="enSub">
+	<label title="Текст или субтитры">Текст En:</label>	
+	<div class="field">
+		<div><select id="enSubSelect">
+			<option selected value=1>выбрать файл</option>
+			<option value=2>заполнить поле</option>
+			<optgroup disabled class="sub_list" label="субтитры из видео"><option>видео не выбрано</option></optgroup></select>
+			<input type="button" value="обзор" class="file_button"> <span class="loader"></span>
+		</div>
+		<div id="enSubInfo" class="info">
+			<div class="file_line"><input id="enSubFile" type="file" title="обзор" accept=".srt, .txt" hint="srt, txt"></div>
+			<div class="slice">
+				<div><span>Вырезать часть: </span><span class="select_duration"></span></div>
+				<div>c <input class="start" type="text"> по <input class="end" type="text"> <input class="dur_from_video" title="Взять данные у видеофайла" type="checkbox"></div>
+			</div>
+		</div>
+		<div class="textarea_wrap"><textarea id="enSub"></textarea></div>
+	</div>
+</div>
+
+
+<input type="submit" id="upload_button" onclick="upload()" value="upload">
+<input type="button" onclick="getSession()" value="new session">
+<input type="button" onclick="extract()" value="extract">
+</div>
+
+
+
+
+
+<script type="text/javascript">
+//http://www.youtube.com/get_video_info?hl=en_US&eurl=unknown&video_id=X50zOCg0ZkU&asv=3&el=embedded
+
+
+var uploadInfo = {}
+// set defaults
+var types = {video:"",ruAudio:"",enAudio:"",ruSub:"",enSub:""};
+for (var type in types)
+	uploadInfo[type] = {start: 0, end: 600, source: 1}
+
+
+var host = "http://192.168.2.5:1335/";
+var usid = 0;
+$.getJSON(host, {act: "getsession"}, function(data){
+	usid = data.usid;
+});
+
+
+// select 
+$(".item select").val(1).change(function(){
+	var last_val = $(this).data("last_val");
+	var $item = $(this).parents(".item");
+	var $info = $item.find(".info")
+	var id = $(this).attr("id");
+	var type = id.replace("Select", "");
+	var val = $(this).val();
+
+	uploadInfo[type].source = val;
+
+	//if (val == last_val)
+	//	return ;
+
+	if (val == 1)
+		$item.find(".file_button, .info").show()
+	else
+		$item.find(".file_button, .info").hide()
+
+
+	if (id == "videoSelect"){
+		if (val == 1)
+			$(".dur_from_video").attr("checked", false).show().prevAll().attr("disabled", true);
+		else 
+			$(".dur_from_video").attr("checked", true).hide().prevAll().attr("disabled", false);
+	}
+
+	if (id == "enSubSelect" || id == "ruSubSelect"){
+		if (val == 2)
+			$item.find(".textarea_wrap").show();	
+		else
+			$item.find(".textarea_wrap").hide();
+	}
+
+}).change();
+
+$(".dur_from_video").change(function(){
+	$(this).prevAll().attr("disabled", !$(this).is(':checked'));
+	$("#videoInfo .start").change();
+})	
+
+$(function(){
+	$(".info .start").time(0);
+	$(".info .end").time(600);
+})
+
+
+$(".file_button").click(function(){
+	$(this).parent().next().find("input:file").click();
+});
+
+$(document).delegate(".uploader input:file", "change", function(){
+	var type = $(this).attr("id").replace("File", "");
+	console.log(type, this.value);
+	if (this.value){
+		getMediaInfo(type, function(info){
+			console.log(info);
+			var $loader = $(".item[type="+type+"] .loader").fadeIn();
+			//var ext = file.name.replace(/^.*\.(.*?)$/, "$1");
+			$loader.fadeOut();
+			if (info.duration){
+				//info.ext = ext;
+				setInfo(type, info);
+			}
+			else {
+				$(".item[type="+type+"] .inputfile_remove").click();
+				alert("К сожалению этот файл не подходит для нашего сервиса");
+			}
+		})
+	}
+	else {
+		$("#"+type+"Info .slice").slideUp();
+		$(".field select").find(".sub_list, .audio_list").attr("disabled", true).html("<option>видео не выбрано</option>").end().change();
+	}
+})
+
+$(".info .start, .info .end").bind("blur change", function(){
+	$item = $(this).parents(".item");
+	var type = $item.find(".info").attr("id").replace("Info", "");
+	//console.log("blur change", type, this);
+	var start = $item.find(".start").time();
+	var end = $item.find(".end").time();
+	if (start < 0 || start > uploadInfo[type].duration){
+		start = uploadInfo[type].duration;
+		$item.find(".start").time(start);
+	}
+	if (end < 0 || end > uploadInfo[type].duration){
+		end = uploadInfo[type].duration;
+		$item.find(".end").time(end);
+	}
+
+	uploadInfo[type].start = start;
+	uploadInfo[type].end = end;
+
+
+	$item.find(".select_duration").text($.secondsToTime(end - start));
+
+	if ($item.find("#videoSelect").length){
+		$(".dur_from_video:not(:checked)").each(function(){
+			$item2 = $(this).parents(".item");
+			$item2.find(".start").time(start);
+			$item2.find(".end").time(end).change();
+		});
+	}
+
+
+	//setInfo($(this).parent().parent().attr("datatype"));
+});
+
+
+
+
+
+function getMediaInfo(type, callback){
+	var file = $("#"+type+"File")[0].files[0];
+	var url = host+"?act=uploadpart&usid="+usid+"&type="+type;
+	var counter = 0;
+	var fn = function(from, end, makefile){
+		counter++;
+		sendPart({url: url, file: file, from: from, end: end, getmediainfo: 1, makefile: makefile}, function(info){
+			if (info.loadfrom>0 && counter < 5)
+				if (info.loadfrom>file.size-10*1000*1000)
+					fn(info.loadfrom, file.size, false);
+				else
+					fn(info.loadfrom, info.loadfrom+1000*1000, false);
+			else
+				callback(info);
+		})
+	}
+	fn(0, 3000*1000, true);
+}
+
+
+function setInfo(type, info){
+	uploadInfo[type].duration = info.duration;
+	uploadInfo[type].streams = info.streams;
+
+	$info = $("#"+type+"Info");
+	$info.find(".duration").text($.secondsToTime(uploadInfo[type].duration));
+	$info.find(".start").time(uploadInfo[type].start);
+	$info.find(".end").time(uploadInfo[type].end).change();
+	if (info.ext != "txt")
+		$info.find(".slice").slideDown(800);
+
+
+	if (type == 'video'){
+		var audio_list="", sub_list="", audio_i=0, sub_i=0;
+		for (var i=0; i<uploadInfo[type].streams.length; i++){
+			var st = uploadInfo[type].streams[i];
+			if (st.type == "audio"){
+				audio_i++;
+				audio_list += "<option lang='"+(st.lang?st.lang:(audio_i==1?"rus":"eng"))+"' value='-"+i+"'>"+(st.title?st.title:"Stream")+" "+audio_i+(st.lang?" ("+st.lang+")":"")+"</option>";
+			}
+
+			if (st.type == "sub"){
+				sub_i++;
+				sub_list += "<option lang='"+(st.lang?st.lang:(sub_i==1?"rus":"eng"))+"' value='-"+i+"'>"+(st.title?st.title:"Subtitle")+" "+sub_i+(st.lang?" ("+st.lang+")":"")+"</option>";
+			}
+		}
+		$(".audio_list").attr("disabled", false).html(audio_list ? audio_list : "<option disabled>отсутствуют</option>");
+		$(".sub_list").attr("disabled", false).html(sub_list ? sub_list : "<option disabled>отсутствуют</option>");
+
+		$("#ruAudioSelect option[lang=rus]:first").attr("selected", true).change();
+		$("#enAudioSelect option[lang=eng]:last").attr("selected", true).change();
+		$("#ruSubSelect option[lang=rus]:first").attr("selected", true).change();
+		$("#enSubSelect option[lang=eng]:first").attr("selected", true).change();
+
+		$("#videoInfo .start").change();
+	}
+}
+
+
+function upload(){
+
+	var videoSelect   = $("#videoSelect").val();
+	var ruAudioSelect = $("#ruAudioSelect").val();
+	var enAudioSelect = $("#enAudioSelect").val();
+	var ruSubSelect   = $("#ruSubSelect").val();
+	var enSubSelect   = $("#enSubSelect").val();
+	var ruSub		 = $("#ruSub").val();
+	var enSub		 = $("#enSub").val();
+
+	var videoFile	 = $("#videoFile")[0];
+	var ruAudioFile   = $("#ruAudioFile")[0];
+	var enAudioFile   = $("#enAudioFile")[0];
+	var ruSubFile	 = $("#ruSubFile")[0];
+	var enSubFile	 = $("#enSubFile")[0];
+
+	function checkForm(){
+		if (videoSelect==1 && !videoFile.value)
+			return "Не выбрано видео";
+		if (videoSelect==1 && enAudioSelect==0)
+			return "Если есть видео необходима английская аудиодорожка";
+
+		if (ruAudioSelect==1 && !ruAudioFile.value)
+			return "Не выбрана русская аудиодорожка";
+		if (enAudioSelect==1 && !enAudioFile.value)
+			return "Не выбрана английская аудиодорожка";
+		if (ruAudioSelect<0 && ruAudioSelect == enAudioSelect)
+			return "Выбраны одинаковые аудиодорожки";
+		if (ruAudioSelect==1 && enAudioSelect==1 && ruAudioFile.files[0].size == enAudioFile.files[0].size)
+			return "Выбраны одинаковые файлы аудиодорожек";
+		if (ruAudioSelect!=0 && enAudioSelect==0)
+			return "Если имеется русская аудиодорожка, то также необходима английская";
+
+
+		if (ruSubSelect==1 && !ruSubFile.value)
+			return "Не выбраны русские субтитры или текст";
+		if (ruSubSelect==2 && !ruSub)
+			return "Не заполнено поле с текстом";
+
+		if (enSubSelect==1 && !enSubFile.value)
+			return "Не выбраны английские субтитры или текст";
+		if (enSubSelect==2 && !enSub)
+			return "Не заполнено поле с текстом";
+
+		if (ruSubSelect<0 && ruSubSelect == enSubSelect<0)
+			return "Выбраны одинаковые субтитры";
+		if (ruSubSelect==1 && enSubSelect==1 && ruSubFile.files[0].size == enSubFile.files[0].size)
+			return "Выбраны одинаковые файлы субтитров или текста";
+
+		for (var i in uploadInfo){
+			console.log(i, uploadInfo[i]);
+			if (uploadInfo[i].start > uploadInfo[i].end - 20)
+				return "Длительность должна быть не менее 20 секунд";
+			if (uploadInfo[i].end - uploadInfo[i].start > 600)
+				return "Длительность вырезаемой части не должна быть более 10 минут";
+		}
+		return false;
+	}
+
+
+	var error = checkForm();
+	if (error)
+		return alert(error);
+
+
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', host+"/?usid="+usid+"&act=info", true);
+	xhr.send(JSON.stringify(uploadInfo));
+	xhr.addEventListener("load", function(e) {
+		var info = $.parseJSON(e.target.response);
+		console.log(info);
+		for (var type in info){
+			uploadFile(type, info[type].startpos, info[type].endpos, function(){
+				console.log("DONE", type);
+			});
+		}
+	}, false);
+}
+
+function extract()
+{
+	var url = host+"/?usid="+usid+"&type=video";
+	$.getJSON(url+"&act=extract", function(res){
+		console.log("extracted:", res);
+	});
+}
+
+
+function uploadFile(type, startpos, endpos, callback){
+	var file = $("#"+type+"File")[0].files[0];
+	var url = host+"/?usid="+usid+"&act=uploadpart&type="+type;
+	sendPart({url: url, file: file, from: startpos, end: endpos}, callback);
+}
+
+function setProgress(val){
+	$("#progress").val(val);
+}
+
+
+function sendPart(param, callback){
+	var part_size = 5*1000*1000;
+	var file = param.file;
+	param.end = Math.min(param.end, file.size);
+	var upload_size = param.end - param.from;
+	var uploaded_size = 0;
+
+	var uploaded = {}
+	function calcProgress(){
+		uploaded_size = 0;
+		for (var i in uploaded)
+			uploaded_size += uploaded[i];
+		setProgress(uploaded_size/upload_size*100);
+	}
+	setProgress(0);
+
+	function sendPartChunk(from, callback){
+		var end_part = Math.min(from+part_size, param.end);
+
+		var isfirstchunk = param.from == from;
+		var islastchunk  = param.end == end_part;
+
+		var reader = new FileReader();
+		//reader.readAsBinaryString(file.slice(from*1, end_part));
+		reader.readAsArrayBuffer(file.slice(from, end_part));
+		reader.onloadend = function(e) {
+			if (e.target.readyState == FileReader.DONE) {
+				var reqUrl = param.url;
+				reqUrl += "&from="+from;
+				if (isfirstchunk && param.makefile){
+					reqUrl += "&filesize="+file.size;
+					reqUrl += "&makefile="+(param.makefile?1:0);
+				}
+				if (islastchunk && param.getmediainfo)
+					reqUrl += "&getmediainfo="+(param.getmediainfo?1:0);
+
+				var xhr = new XMLHttpRequest();
+				xhr.open('POST', reqUrl, true);
+				xhr.send(e.target.result);
+				xhr.addEventListener("progress", function(e) {
+					uploaded[from] = e.position || e.loaded;
+					console.log("progress upload", e.loaded);
+					calcProgress();
+				});
+
+				xhr.addEventListener("load", function(e) {
+					reader = false;
+					uploaded[from] = end_part - from;
+					calcProgress();
+					callback($.parseJSON(e.target.response));
+				}, false);
+			}
+		}		
+	}
+
+	var start = param.from;
+	var maxWorkers = param.getmediainfo ? 1 : 5;
+	var workers = 0;
+	var interval = setInterval(function(){
+		if (workers < maxWorkers)
+			if (start < param.end){
+				workers++;
+				sendPartChunk(start, function(res){
+					workers--;
+					if (uploaded_size == upload_size)
+						callback(res);
+				});
+				start += part_size;
+			}
+			else clearInterval(interval);
+	}, 50);
+}
+
+
+
+
+
+
+</script>
+</body>
+</html>

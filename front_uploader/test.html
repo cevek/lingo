@@ -178,6 +178,7 @@ for (var type in types)
 
 
 var host = "http://192.168.2.5:1335/";
+var host = "http://127.0.0.1:1335/";
 var usid = 0;
 $.getJSON(host, {act: "getsession"}, function(data){
 	usid = data.usid;

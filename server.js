@@ -8,23 +8,34 @@ var util = require('util');
 var exec = require("child_process").exec;
 var extract = require('./extract');
 var upload = require('./upload');
+var config = require("./config");
 //require('helper');
 
 
 var files_dir = "/mnt/hgfs/share/files/";
 var files_dir = "/home/cody/Desktop/ram/";
-//var files_dir = "d:/share/files/";
+var files_dir = "d:/share/files/";
 var UID = 1;
+
 
 console.log("start server");
 
 var userData = [];
 var uploadSessions = {};
 
-var addr = "192.168.2.5";
-//var addr = "127.0.0.1";
+//var addr = "192.168.2.5";
+var addr = "127.0.0.1";
 http.createServer(function(req, res){
-	res.writeHead(200, {"Access-Control-Allow-Origin": "*"});
+	res.writeHead(200, {
+		"Access-Control-Allow-Origin": "*",
+		"Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+		"Access-Control-Allow-Headers": "content-type, origin"
+	});
+	if (req.method == "OPTIONS"){
+		console.log("OPTIONS");
+		res.end()
+		return false;
+	}
 
 	// max input size 5Mib
 	req.size = req.headers["content-length"]|0;
@@ -50,7 +61,7 @@ http.createServer(function(req, res){
 
 function request(req, res, data, action)
 {
-	userData[UID] = userData[UID] || {dir: files_dir+"", parts: []};
+	userData[UID] = userData[UID] || {dir: config.dataDir+"", parts: []};
 	var user = userData[UID];
 	GET = url.parse(req.url, true).query;
 	var usid = GET.usid|0;
@@ -66,7 +77,7 @@ function request(req, res, data, action)
 			break;
 
 		case "info":
-			upload.uploadInfo(req, ssn, data, function(info){
+			upload.getInfo(req, ssn, data, function(info){
 				res.end(JSON.stringify(info));
 			});
 			break;
@@ -75,13 +86,13 @@ function request(req, res, data, action)
 			if (!type)
 				return res.end("!type");
 
-			upload.uploadPart(req, ssn, type, GET, data);
-
-			if (GET.getmediainfo)
-				upload.getMediaInfo(ssn, type, function(info){
-					res.end(JSON.stringify(info));
-				});
-			else res.end(JSON.stringify({status: 'ok'}));
+			upload.uploadPart(req, ssn, type, GET, data, function(){
+				if (GET.getmediainfo)
+					upload.getMediaInfo(ssn, type, function(info){
+						res.end(JSON.stringify(info));
+					});
+				else res.end(JSON.stringify({status: 'ok'}));
+			});
 			break;
 
 		case "extract": 
@@ -98,7 +109,7 @@ function makeUploadSession(){
 	var usid = false;
 	usid = parseInt(Math.random()*1000000000);
 	usid = 1;
-	var dir = files_dir + usid + "/";
+	var dir = config.dataDir + usid + "/";
 	if (!fs.existsSync(dir))
 		fs.mkdirSync(dir);
 	uploadSessions[usid] = {user: UID, time: new Date(), dir: dir, status: 0, video: {}, ruAudio: {}, enAudio: {}, ruSub: {}, enSub: {}};

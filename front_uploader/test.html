@@ -173,12 +173,12 @@ h1{text-align: center;}
 var uploadInfo = {}
 // set defaults
 var types = {video:"",ruAudio:"",enAudio:"",ruSub:"",enSub:""};
+var start = Math.random() * 6000 | 0;
 for (var type in types)
-	uploadInfo[type] = {start: 0, end: 600, source: 1}
+	uploadInfo[type] = {start: start, end: start + 300, source: 1}
 
 
-var host = "http://192.168.2.5:1335/";
-var host = "http://127.0.0.1:1335/";
+var host = "http://"+location.hostname+":1335/";
 var usid = 0;
 $.getJSON(host, {act: "getsession"}, function(data){
 	usid = data.usid;
@@ -431,6 +431,7 @@ function upload(){
 		for (var type in info){
 			uploadFile(type, info[type].startpos, info[type].endpos, function(){
 				console.log("DONE", type);
+				extract();
 			});
 		}
 	}, false);

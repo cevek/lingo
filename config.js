@@ -1,6 +1,6 @@
 exports.config = {
-	isWindows: true,
+	isWindows: false,
 	dataDir: "/mnt/hgfs/share/",
 	dataDirVideo: "/tmp/",
-	processDir: "/tmp/ram/"
+	processDir: "/home/cody/Desktop/ram1/"
 }

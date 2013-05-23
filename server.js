@@ -1,22 +1,13 @@
 //Error.stackTraceLimit = 10;
 var fs = require('fs');
-var net = require('net');
 var http = require('http');
 var url = require('url');
-var qs = require('querystring');
-var util = require('util');
 var exec = require("child_process").exec;
 var extract = require('./extract');
 var upload = require('./upload');
-var config = require("./config");
-//require('helper');
+var config = require("./config.js").config;
 
-
-var files_dir = "/mnt/hgfs/share/files/";
-var files_dir = "/home/cody/Desktop/ram/";
-var files_dir = "d:/share/files/";
 var UID = 1;
-
 
 console.log("start server");
 
@@ -24,7 +15,6 @@ var userData = [];
 var uploadSessions = {};
 
 //var addr = "192.168.2.5";
-var addr = "127.0.0.1";
 http.createServer(function(req, res){
 	res.writeHead(200, {
 		"Access-Control-Allow-Origin": "*",
@@ -33,7 +23,7 @@ http.createServer(function(req, res){
 	});
 	if (req.method == "OPTIONS"){
 		console.log("OPTIONS");
-		res.end()
+		res.end();
 		return false;
 	}
 
@@ -57,13 +47,13 @@ http.createServer(function(req, res){
 		request(req, res, req.data);
 	});
 
-}).listen(1335, addr);
+}).listen(1335);
 
 function request(req, res, data, action)
 {
 	userData[UID] = userData[UID] || {dir: config.dataDir+"", parts: []};
 	var user = userData[UID];
-	GET = url.parse(req.url, true).query;
+	var GET = url.parse(req.url, true).query;
 	var usid = GET.usid|0;
 	var ssn = uploadSessions[usid];
 	var type = (GET.type+"").match(/^(video|ruAudio|enAudio|ruSub|enSub)$/) ? GET.type : false;
@@ -106,13 +96,15 @@ function request(req, res, data, action)
 }
 
 function makeUploadSession(){
-	var usid = false;
-	usid = parseInt(Math.random()*1000000000);
+	var usid = parseInt(Math.random()*1000000000);
 	usid = 1;
 	var dir = config.dataDir + usid + "/";
 	if (!fs.existsSync(dir))
 		fs.mkdirSync(dir);
-	uploadSessions[usid] = {user: UID, time: new Date(), dir: dir, status: 0, video: {}, ruAudio: {}, enAudio: {}, ruSub: {}, enSub: {}};
+	else
+		exec("rm " + dir + "*");
+
+	uploadSessions[usid] = {user: UID, time: new Date(), processDir: config.processDir, dataDirVideo: config.dataDirVideo, dataDir: dir, status: 0, video: {}, ruAudio: {}, enAudio: {}, ruSub: {}, enSub: {}};
 	return usid;
 }
 function removeUploadSession(usid, reason){

@@ -73,16 +73,17 @@ function makeFile(ssn, type, filesize, callback) {
 	var track = ssn[type];
 	track.filesize = filesize;
 	track.parts = [];
-	track.file = ssn.dir + type;
-	//if (type == "video")
-	//	track.file = "/home/cody/Desktop/" + type;
-
-	// reserve the place for file
-	// allocate file size - fsutil file createnew 1.dat 2000000000
+	track.file = ssn.dataDir + type;
+	if (type == "video")
+		track.file = ssn.dataDirVideo + type;
+	console.log(ssn, track.file);
 
 	if (fs.existsSync(track.file))
 		fs.unlinkSync(track.file);
-	exec("fsutil file createnew " + track.file + " " + track.filesize, function () {
+
+	var command = config.isWindows ? "fsutil file createnew " + track.file + " " + track.filesize : "fallocate -l " + track.filesize + " " + track.file;
+	exec(command, function () {
+		console.log("created file", track.file);
 		track.fd = fs.openSync(track.file, "r+");
 		callback();
 	});
@@ -116,10 +117,10 @@ function needToLoad(tracedata, loadedparts, filesize, isffmpeg) {
 	var last_seek = 0;
 	var all_seeks = [];
 	var m = tracedata.match(/Read error at pos. \d+/g);
-	console.log(tracedata, m);
+	//console.log(tracedata, m);
 	for (var i in m) {
 		var m2 = m[i].match(/(\d+)/) || [];
-		all_seeks.push((m2[1]|0));
+		all_seeks.push((m2[1] | 0));
 	}
 
 	var n = (isffmpeg ? 3 : 4);
@@ -154,10 +155,10 @@ function needToLoad(tracedata, loadedparts, filesize, isffmpeg) {
 		last_seek += m2[3];
 	}
 
-	console.log("#####################3");
-	console.log("seeks", seeks);
-	console.log("all_seeks", all_seeks);
-	console.log("loadedparts", loadedparts);
+	//console.log("#####################3");
+	//console.log("seeks", seeks);
+	//console.log("all_seeks", all_seeks);
+	//console.log("loadedparts", loadedparts);
 	return seeks[0] || 0;
 }
 
@@ -165,7 +166,7 @@ exports.getMediaInfo = function (ssn, type, callback) {
 	var track = ssn[type];
 	console.log("getmediainfo");
 
-	var command = "strace -e_llseek,read avconv -ss 0.1 -i '+track.file+' -t 0 2>&1";
+	var command = "strace -e_llseek,read avconv -ss 0.1 -i "+track.file+" -t 0 2>&1";
 	if (config.isWindows)
 		command = "d:/ffmpeg2/ffmpeg -y -ss 1 -i " + track.file + " -t 0 1.mkv 2>&1";
 
@@ -190,7 +191,7 @@ exports.getMediaInfo = function (ssn, type, callback) {
 
 		for (var i in streams) {
 			var m = streams[i].replace(/\s+/g, " ").match(/Stream \#0.(\d+)(\((.*?)\))?: ((Video): (.*?), .*?, (\d+x\d+)|(Audio): (.*?), .*?, (.*?), (.*? title : (.*?) $)?|(Subtitle): (.*? title : (.*?) $)?)/) || [];
-			if (!sinfo[m[1]]){
+			if (!sinfo[m[1]]) {
 				if (m[5]) {
 					var m2 = (m[7] || "").match(/(\d+)x(\d+)/);
 					var size = {w: m2[1] * 1, h: m2[2] * 1}

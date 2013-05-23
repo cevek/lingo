@@ -1,7 +1,6 @@
 var fs = require('fs');
 var exec = require("child_process").exec;
-var async = require("./async").async;
-var sync = require("./async").sync;
+var async = require("./async.js").async;
 
 var started_time = 0;
 
@@ -21,8 +20,9 @@ function pr(command, callback) {
 
 
 function upload(reqtype, file, callback) {
-	console.log("upload: " + reqtype + " / file: " + file);
-	callback();
+	//console.log("upload: " + reqtype + " / file: " + file);
+	if (callback)
+		callback();
 }
 
 exports.extract = function (ssn, callback) {
@@ -32,14 +32,15 @@ exports.extract = function (ssn, callback) {
 	ssn.extracting = true;
 	started_time = (new Date).getTime();
 
-	var dir = ssn.dir;
-	var destDir = ssn.destDir;
+	var dir = ssn.processDir;
+	var dataDir = ssn.dataDir;
 	var video = ssn.video;
 	video.mkvfile = dir + "video.mkv";
 	video.dur = video.end - video.start;
 
+	console.log("start extracting");
 
-	copyFilesToRAM(function(){
+	copyFilesToRAM(function () {
 		// parallel actions
 		async(
 			function (cb) {
@@ -68,24 +69,37 @@ exports.extract = function (ssn, callback) {
 				processSubs(cb);
 			},
 			function () {// when done
-				joinVideoEnAudio(function () {
-					console.log("CONVERT DONE");
-					console.log(ssn);
-				});
+				console.log("CONVERT DONE");
+				console.log("Extracting time: ", (new Date() - started_time) / 1000 | 0, "s");
+				console.log(ssn);
 			}
 		)
 	});
 
+	function enAudioDone() {
+		joinVideoEnAudio(function () {
+			upload("video", function(){
 
-
+			});
+		});
+	}
 
 
 	function copyFilesToRAM(callback) {
-		var rs = fs.createReadStream(video.file, {start: video.startpos, end: video.endpos});
-		var ws = fs.createWriteStream(video.file + ".mkv");
-		ws.write(buffer);
-		rs.pipe(ws);
-		ws.on("close", callback);
+		exec("cp " + video.file + " " + dir, function (a, b, c) {
+			console.log("copy result", a, b, c);
+			video.file = dir + "video";
+			callback();
+		});
+
+		/*var rs = fs.createReadStream(video.file);
+		 var ws = fs.createWriteStream(dir + "video");
+		 rs.pipe(ws);
+		 ws.on("close", function(){
+		 console.log("copy done");
+		 video.file = dir + "video";
+		 callback();
+		 });*/
 	}
 
 	function extractVideo(callback) {
@@ -100,22 +114,24 @@ exports.extract = function (ssn, callback) {
 			var fd = fs.openSync(video.file, "r");
 			fs.readSync(fd, buffer, 0, 32768);
 			fs.closeSync(fd);
+
+			var mkv_subs_video = video.file + "_subs.mkv";
 			var rs = fs.createReadStream(video.file, {start: video.startpos, end: video.endpos});
-			var ws = fs.createWriteStream(video.file + ".mkv");
+			var ws = fs.createWriteStream(mkv_subs_video);
 			ws.write(buffer);
 			rs.pipe(ws);
 			ws.on("close", function () {
 				var params = "";
 				if (ssn.enSub.videoStream) {
-					ssn.enSub.file = ssn.dir + "enSub.srt";
+					ssn.enSub.file = dataDir + "enSub.srt";
 					params += (ssn.enSub.videoStream + 1) + ":" + ssn.enSub.file + " ";
 				}
 				if (ssn.ruSub.videoStream) {
-					ssn.ruSub.file = ssn.dir + "ruSub.srt";
+					ssn.ruSub.file = dataDir + "ruSub.srt";
 					params += (ssn.ruSub.videoStream + 1) + ":" + ssn.ruSub.file + " ";
 				}
-				pr("mkvextract tracks " + video.file + ".mkv " + params, function () {
-					exec("rm " + video.file + ".mkv");
+				pr("mkvextract tracks " + mkv_subs_video + " " + params, function () {
+					exec("rm " + mkv_subs_video);
 					callback();
 				});
 			})
@@ -126,7 +142,7 @@ exports.extract = function (ssn, callback) {
 
 	function extractAudioFromFile(type, callback) {
 		var audio = ssn[type];
-		audio.file = ssn.dir + type + ".wav";
+		audio.file = dir + type + ".wav";
 		pr("ffmpeg -i " + audio.uploadfile + " -y " + audio.file, callback);
 	}
 
@@ -144,7 +160,7 @@ exports.extract = function (ssn, callback) {
 		audio.format = video.streams[stream_id].format;
 
 		// with audio mencoder "D:\A.Perfect.World.1993.x264.tRuAVC.mkv" -ss 86:30 -endpos 60 -of lavf -ovc copy -aid 5 -mc 0 -noskip -oac copy -fafmttag 0x706D -o 0.mp4
-		pr("mencoder " + video.file + " -ss " + video.start + " -endpos " + dur + " -of rawaudio -aid " + aid + " -oac pcm -channels " + audio.channels + " -ovc copy -o " + audio.tmpfile, function () {
+		pr("mencoder " + video.file + " -ss " + video.start + " -endpos " + video.dur + " -of rawaudio -aid " + aid + " -oac pcm -channels " + audio.channels + " -ovc copy -o " + audio.tmpfile, function () {
 			var fd = fs.openSync(audio.tmpfile, "r+");
 			var size = fs.fstatSync(fd).size;
 
@@ -166,15 +182,17 @@ exports.extract = function (ssn, callback) {
 	}
 
 	function processSubs(callback) {
-		var sub = ssn[type];
+		//var sub = ssn[type];
 		callback();
 	}
 
 	function processAudio(type, callback) {
 		var audio = ssn[type];
-		audio.file = ssn.dir + type + ".wav";
-		audio.mp3file = ssn.dir + type + ".mp3";
-		audio.oggfile = ssn.dir + type + ".ogg";
+		audio.file = dir + type + ".wav";
+		audio.fileslow = dir + type + "_slow.wav";
+		audio.mp3file = dataDir + type + ".mp3";
+		audio.mp3fileslow = dataDir + type + "_slow.mp3";
+		audio.oggfile = dataDir + type + ".ogg";
 		/*
 		 var channels = " -channels 1 ";
 		 if (audio_streams[i].channels == 6)
@@ -196,9 +214,9 @@ exports.extract = function (ssn, callback) {
 								});
 							});
 						p.done(function () {
-							pr("montage " + dir + "*__.png -tile x1 -geometry +0+0 -gravity north " + dir + "spectrogram.png", function () {
+							pr("montage " + dir + "*__.png -tile x1 -geometry +0+0 -gravity north " + dataDir + "spectrogram.png", function () {
 								exec("rm " + dir + "*_.png");
-								upload("spectrogram", dir + "spectrogram.png", soxffmpegcb);
+								upload("spectrogram", dataDir + "spectrogram.png", soxffmpegcb);
 							});
 						});
 					}
@@ -206,11 +224,25 @@ exports.extract = function (ssn, callback) {
 				},
 				function (soxffmpegcb) {
 					// convert to mp3
-					// todo:maybe aac?
-					// todo: mp3 without bit reservoir
-					pr("ffmpeg -y -i " + audio.file + " -ab 96k -ac 1 " + audio.mp3file, function () {
-						upload("audio", audio.mp3file, soxffmpegcb);
-					})
+					async(
+						function (cb) {
+							pr("lame --nores -m m --noreplaygain -b 128k  " + audio.file + " " + audio.mp3file, function () {
+								upload("audio", audio.mp3file, cb);
+								if (type == "enAudio")
+									enAudioDone();
+							})
+						},
+						function (cb) {
+							if (type == "enAudio")
+								pr("sox " + audio.file + " " + audio.fileslow + " speed 0.75 pitch 150", function () {
+									pr("lame --nores -m m --noreplaygain -b 128k  " + audio.fileslow + " " + audio.mp3fileslow, function () {
+										upload("slowaudio", audio.mp3fileslow, cb);
+									})
+								});
+							else cb();
+						},
+						soxffmpegcb
+					);
 				},
 				callback);
 
@@ -225,24 +257,30 @@ exports.extract = function (ssn, callback) {
 
 	function extractThumbs(callback) {
 		var video = ssn.video;
-		var dir = ssn.dir;
-
 		// extract thumbs
-		pr("ffmpeg -y -i " + video.mkvfile + " -vf scale=-1:200,crop=min\\(iw\\\\,320\\):200 -qscale 1 -vsync 1 -r 1 " + dir + "_video%03d_.jpg", function () {
+		//-vf scale=-1:200,crop=min\\(iw\\\\,320\\):200
+		var dur = 60;
+		var p = async();
+		for (var i = 0; i < Math.ceil(video.dur / 60); i++)
+			p.push(i, function (i, cb) {
+				pr("ffmpeg -y -ss " + i * dur + " -t " + dur + " -i " + video.mkvfile + " -vf scale=-1:50,crop=min\\(iw\\\\,100\\):50 -qscale 1 -vsync 1 -r 1 " + dir + "_video" + i + "%03d_.jpg", cb);
+			});
+		p.done(function () {
 			pr("convert " + dir + "_*.jpg -auto-level -level 0,60%% -modulate 100,70 " + dir + "_vv.jpg", function () {
-				pr("montage " + dir + "_vv*.jpg  -tile 20x -geometry +0+0 -gravity north " + dir + "thumbs.jpg", function () {
+				pr("montage " + dir + "_vv*.jpg  -tile 20x -geometry +0+0 -gravity north " + dataDir + "thumbs.jpg", function () {
 					exec("rm " + dir + "_*.jpg");
-					upload("thumb", dir + "thumbs.jpg", callback);
+					upload("thumb", dataDir + "thumbs.jpg", callback);
 				});
 			});
 		});
 	}
 
 	function joinVideoEnAudio(callback) {
-		ssn.videoEn = ssn.dir + "videoEn.mkv";
+		ssn.videoEn = dataDir + "videoEn.mkv";
 		pr("mencoder -audiofile " + ssn.enAudio.mp3file + " " + ssn.video.mkvfile + " -of lavf -oac copy -ovc copy -o " + ssn.videoEn, function () {
-			exec("rm " + ssn.video.mkvfile);
-			upload("video", ssn.videoEn, callback);
+			exec("rm " + dir + "*", function () {
+				upload("video", ssn.videoEn, callback);
+			});
 		});
 	}
-}
+};

@@ -22,8 +22,9 @@ exports.async = function () {
 	}
 
 	// if we have one callback
-	if (arguments.length == 1) {
-		o.callback = arguments[0];
+	if (arguments.length <= 1) {
+		if (arguments[0])
+			o.callback = arguments[0];
 		return o;
 	}
 	// if we have array of callbacks
